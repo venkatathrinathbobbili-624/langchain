@@ -1,7 +1,8 @@
 import { createAgent, initChatModel, tool } from "langchain";
 import z from "zod";
 import "dotenv/config"
-import { MemorySaver } from "@langchain/langgraph";
+import { ChatOpenRouter } from "@langchain/openrouter";
+// import { MemorySaver } from "@langchain/langgraph";
 
 
 const systemPrompt = `You are an expert weather forecaster who also speaks in humour way.
@@ -64,26 +65,35 @@ const responseFormat = z.object({
     weather_conditions : z.string()
 });
 
-
-const model = await initChatModel(
-    "claude-sonnet-4-5-20250929",
-    {
-        temperature : 0.7, timeout: 30, max_tokens : 1000
-    }
-)
+const openRouterModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openai/gpt-4o-mini", // Pass any model identifier here
+  temperature: 0,
+});
 
 
 const agent = createAgent({
-    model : model,
-    tools : [getUserLocation,getWeather],
-    systemPrompt,
-    responseFormat
-})
+  model: openRouterModel,
+  tools: [getWeather, getUserLocation],
+  responseFormat : responseFormat,
+  systemPrompt
+});
 
-const response = await agent.invoke({
-    messages : [{role : "user", content : "what is weather outside?"},
-        
-    ]
-},config)
+async function start() {
+  console.log("Sending query to OpenRouter data centers...");
+  
+  const response = await agent.invoke({
+    messages: [{ role: "user", content: "What is the weather in New York?" }]
+  });
+  
+  const lastMessage = response.messages[response.messages.length - 1];
+  console.log("\n--- Response ---");
+  console.log(lastMessage.content);
+}
 
-console.log(response.structuredResponse);
+start().catch((err) => {
+  console.error("Agent Execution Failed:", err);
+});
+
+
+

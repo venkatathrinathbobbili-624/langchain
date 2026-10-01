@@ -1,7 +1,7 @@
 {
     "graphs": {
 
-        "rag_agent" : "./rag/ragagentServer.ts:graph",
+        "rag_agent" : "./rag/ragagentServer.ts:graph"
         
 
     },

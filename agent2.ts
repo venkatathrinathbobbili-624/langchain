@@ -1,6 +1,7 @@
 import { createAgent, tool } from "langchain";
 import z from "zod";
 import "dotenv/config"
+import { ChatOpenRouter } from "@langchain/openrouter";
 
 
 const systemPrompt = `You are an expert weather forecaster.
@@ -58,17 +59,30 @@ const qaConfig = {
 }
 // 12, 12->city ( )
 
+const openRouterModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openai/gpt-4o-mini", // Pass any model identifier here
+  temperature: 0,
+});
 
 const agent = createAgent({
-    model : "claude-sonnet-4-5-20250929",
+    model : openRouterModel,
     tools : [getUserLocation,getWeather],
     systemPrompt
 })
 
-const response = await agent.invoke({
-    messages : [{role : "user", content : "what is weather outside?"},
-        
-    ]
-},qaConfig)
+async function start() {
+  console.log("Sending query to OpenRouter data centers...");
+  
+  const response = await agent.invoke({
+    messages: [{ role: "user", content: "What is the weather in New York?" }]
+  },qaConfig);
+  
+  const lastMessage = response.messages[response.messages.length - 1];
+  console.log("\n--- Response ---");
+  console.log(lastMessage.content);
+}
 
-console.log(response);
+start().catch((err) => {
+  console.error("Agent Execution Failed:", err);
+});

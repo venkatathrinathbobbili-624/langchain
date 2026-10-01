@@ -1,12 +1,11 @@
-// 1. Explicitly turn off LangSmith tracking BEFORE any other imports to stop the 403 error
-process.env.LANGCHAIN_TRACING_V2 = "false";
-
 import { createAgent, tool } from "langchain";
 import "dotenv/config";
 import * as z from "zod";
-import { ChatOpenAI } from "@langchain/openai";
 
-// --- Your original tools remain unchanged ---
+
+import { ChatOpenRouter } from "@langchain/openrouter";
+
+
 const getWeather = tool((input) => {
   return `Its sunny in ${input.city}`;
 }, {
@@ -14,6 +13,7 @@ const getWeather = tool((input) => {
   description: "Get the weather for a given city",
   schema: z.object({ city: z.string() })
 });
+
 
 const getTime = tool((input) => {
   return `The current time in ${input.city} is 3:00PM`;
@@ -23,18 +23,13 @@ const getTime = tool((input) => {
   schema: z.object({ city: z.string() })
 });
 
-// --- Bulletproof OpenRouter configuration ---
-const openRouterModel = new ChatOpenAI({
-  // Provide the key directly at the top level
-  openAIApiKey: process.env.OPENROUTER_API_KEY,
-  modelName: "anthropic/claude-3.5-sonnet", 
+
+const openRouterModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openai/gpt-4o-mini", // Pass any model identifier here
   temperature: 0,
-  configuration: {
-    baseURL: "https://openrouter.ai",
-    // Keep it here too for the underlying OpenAI module contract
-    apiKey: process.env.OPENROUTER_API_KEY, 
-  },
 });
+
 
 const agent = createAgent({
   model: openRouterModel,
@@ -42,13 +37,12 @@ const agent = createAgent({
 });
 
 async function start() {
-  console.log("Sending prompt to OpenRouter...");
+  console.log("Sending query to OpenRouter data centers...");
   
   const response = await agent.invoke({
     messages: [{ role: "user", content: "What is the weather in New York?" }]
   });
   
-  // Safely grab and print the assistant text
   const lastMessage = response.messages[response.messages.length - 1];
   console.log("\n--- Response ---");
   console.log(lastMessage.content);

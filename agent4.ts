@@ -1,7 +1,8 @@
-import { createAgent, initChatModel, tool } from "langchain";
+import { createAgent, initChatModel, tool } from "langchain"
 import z from "zod";
 import "dotenv/config"
 import {MemorySaver} from "@langchain/langgraph"
+import { ChatOpenRouter } from "@langchain/openrouter"
 
 
 const systemPrompt = `You are an expert weather forecaster who also speaks in humour way.
@@ -67,22 +68,21 @@ const responseFormat = z.object({
 });
 
 
-const model = await initChatModel(
-    "claude-sonnet-4-5-20250929",
-    {
-        temperature : 0.7, timeout: 30, max_tokens : 1000
-    }
-)
+const openRouterModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openai/gpt-4o-mini", // Pass any model identifier here
+  temperature: 0,
+});
 
 const checkpointer = new MemorySaver();
 
-
 const agent = createAgent({
-    model : model,
-    tools : [getUserLocation,getWeather],
-    systemPrompt,
-    responseFormat,checkpointer
-})
+  model: openRouterModel,
+  tools: [getWeather, getUserLocation],
+  systemPrompt, 
+  checkpointer
+});
+
 
 const response = await agent.invoke({
     messages : [{role : "user", content : "what is weather outside?"},
@@ -92,14 +92,17 @@ const response = await agent.invoke({
 
 const longMessage = response.messages[response.messages.length-1].content
 console.log(longMessage);
+console.log('########');
 
 const response1 = await agent.invoke({
     messages : [{role : "user", content : "what location did you just tell me about"},
         
     ]
 },config)
+
 const longMessage1 = response1.messages[response1.messages.length-1].content
 console.log(longMessage1);
+console.log('########');
 
 const response2 = await agent.invoke({
     messages : [{role : "user", content : "Suggest me good places in that location"},
@@ -109,13 +112,13 @@ const response2 = await agent.invoke({
 
 const longMessage2 = response2.messages[response2.messages.length-1].content
 console.log(longMessage2);
+console.log('########');
 
-const response3 = await agent.invoke({
-    messages : [{role : "user", content : "Suggest me good places in that location"},
+// const response3 = await agent.invoke({
+//     messages : [{role : "user", content : "Suggest me good places in that location"},
         
-    ]
-},qaConfig)
+//     ]
+// },qaConfig)
 
-const longMessage3 = response3.messages[response3.messages.length-1].content
-console.log(longMessage3);
-//console.log(response.structuredResponse);
+// const longMessage3 = response3.messages[response3.messages.length-1].content
+// console.log(longMessage3);

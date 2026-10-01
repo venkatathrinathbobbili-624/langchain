@@ -2,7 +2,7 @@ import { createAgent, createMiddleware, initChatModel, tool } from "langchain";
 import z from "zod";
 import "dotenv/config"
 import {MemorySaver} from "@langchain/langgraph"
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenRouter } from "@langchain/openrouter";
 
 
 const systemPrompt = `You are an expert weather forecaster who also speaks in humour way.
@@ -57,7 +57,7 @@ const dynamicModelSelection = createMiddleware({
         const messageCount =request.messages.length;
         return handler({
             ...request, 
-            model : messageCount >3? model :basicModel
+            model : messageCount >3? Model :BasicModel
             
         });
 
@@ -87,24 +87,23 @@ const responseFormat = z.object({
 //if message count is less than 3 ->CheaperModel, Advanced models 
 
 
-const model = await initChatModel(
-    "claude-sonnet-4-5-20250929",
-    {
-        temperature : 0.7, timeout: 30, max_tokens : 1000
-    }
-)
+const Model = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openrouter/free", // Pass any model identifier here
+  temperature: 0,
+});
 
-const basicModel = new ChatOpenAI(
-    {
-        model : "gpt-4o-mini"
-    }
-)
+const BasicModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "deepseek/deepseek-v4-flash", // Pass any model identifier here
+  temperature: 0,
+});
 
 const checkpointer = new MemorySaver();
 
 
 const agent = createAgent({
-    model : model,
+    model : Model,
     tools : [getUserLocation,getWeather],
     systemPrompt,
     checkpointer,
@@ -118,26 +117,32 @@ const response = await agent.invoke({
     ]
 },config)
 
-
-
+const longMessage1 = response.messages[response.messages.length-1].content
+console.log(longMessage1);
+console.log('########');
 
 const response1 = await agent.invoke({
     messages : [{role : "user", content : "what location did you just tell me about"},
         
     ]
 },config)
-
+const longMessage2 = response1.messages[response1.messages.length-1].content
+console.log(longMessage2);
+console.log('########');
 const response2 = await agent.invoke({
     messages : [{role : "user", content : "Suggest me good places in that location"},
         
     ]
 },config)
 
-
+const longMessage3 = response2.messages[response2.messages.length-1].content
+console.log(longMessage3);
+console.log('########');
 const response3 = await agent.invoke({
     messages : [{role : "user", content : "Suggest me good places in that location"},
         
     ]
 },config)
 
-console.log(response3);
+const longMessage4 = response3.messages[response3.messages.length-1].content
+console.log(longMessage4);

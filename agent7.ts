@@ -1,6 +1,7 @@
 import { createAgent, llmToolSelectorMiddleware, modelFallbackMiddleware, piiRedactionMiddleware, summarizationMiddleware, tool } from "langchain";
 import z from "zod";
 import "dotenv/config"
+import { ChatOpenRouter } from "@langchain/openrouter";
 
 //LLM ->50-70
 
@@ -40,11 +41,21 @@ const getWeather = tool( (input)=> {
     }
 );
 
-//retriever tool.
+const Model = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "openrouter/free", // Pass any model identifier here
+  temperature: 0,
+});
+
+const BasicModel = new ChatOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: "deepseek/deepseek-v4-flash", // Pass any model identifier here
+  temperature: 0,
+});
 
 //10,000 -
 const agent =createAgent({
-    model : "gpt-4o",
+    model : Model,
     tools : [searchTool,emailTool,getWeather],
     middleware :[
         piiRedactionMiddleware ({
@@ -77,4 +88,5 @@ const agent =createAgent({
 const response = await agent.invoke({
     messages: [{role : "user", content: "my ssn is 123-45-6789 & My email is gmail provider. is this good?"}]
 })
-console.log(response)
+const longMessage = response.messages[response.messages.length-1].content
+console.log(longMessage);
